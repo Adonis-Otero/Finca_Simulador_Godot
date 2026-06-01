@@ -1,0 +1,17 @@
+# Archivos específicos de Godot que no se deben subir
+.godot/
+.import/
+export_presets.cfg
+
+# Archivos de configuración local del editor
+.editor_stg.cfg
+
+# Archivos de respaldo o temporales de sistemas operativos
+Thumbs.db
+.DS_Store
+
+# Archivos de exportación de juegos (por si compilan el ejecutable)
+*.apk
+*.exe
+*.zip
+*.html
