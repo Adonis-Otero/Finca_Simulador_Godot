@@ -1,90 +1,120 @@
 extends Node
 
-# Variables administrativas de la finca
-var dinero: float = 10000.0            # Capital inicial en dólares
-var inventario_alimento_kg: float = 500.0 # Kilogramos de alimento en bodega
+var dinero: float = 10000.0            
+var dias_transcurridos: int = 0         
 
-# Listas de control
-var lista_animales: Array[Animal] = []   # Animales actualmente vivos en la granja
-var historial_compras: Array[Dictionary] = [] # Registro contable de compras
-var historial_ventas: Array[Dictionary] = []  # Registro contable de ventas
+# Bodega con los tres alimentos específicos
+var bodega_alimento = {
+	"Bovino":  500.0,  # kg de Silo/Pasto concentrado
+	"Ovino":   200.0,  # kg de Forraje específico
+	"Porcinos": 300.0   # kg de Alimento concentrado porcino
+}
+
+# Precios por kilogramo en el mercado de suministros
+var PRECIOS_ALIMENTO = {
+	"Bovino":  2.5,
+	"Ovino":   1.8,
+	"Porcinos": 2.0
+}
+
+var lista_animales: Array[Animal] = []   
+var historial_compras: Array[Dictionary] = [] 
+var historial_ventas: Array[Dictionary] = []  
 
 # --- COMPRA DE ANIMALES ---
 func comprar_animal(tipo: String, edad: float, peso: float, costo: float) -> Animal:
+	if not bodega_alimento.has(tipo):
+		print("ERROR: Tipo de animal no válido para esta finca.")
+		return null
+		
 	if dinero >= costo:
 		dinero -= costo
 		var nuevo_animal = Animal.new(tipo, edad, peso)
 		lista_animales.append(nuevo_animal)
 		
-		# Guardar en el historial de compras
 		var registro_compra = {
 			"id_animal": nuevo_animal.id,
 			"tipo": tipo,
 			"edad_al_comprar": edad,
 			"peso_al_comprar": peso,
 			"costo": costo,
-			"fecha_registro": Time.get_date_string_from_system()
+			"fecha_registro": "Día " + str(dias_transcurridos)
 		}
 		historial_compras.append(registro_compra)
-		
-		print("COMPRA EXITOSA: ", tipo, " añadida. Dinero restante: $", dinero)
+		print("COMPRA: ", tipo, " registrado con éxito.")
 		return nuevo_animal
 	else:
-		print("ERROR: Fondos insuficientes para comprar este animal.")
+		print("ERROR: Capital insuficiente.")
 		return null
 
 # --- VENTA DE ANIMALES ---
-func vender_animal(id_animal: String, precio_venta: float) -> bool:
+func vender_animal(id_animal: String, precio_base: float) -> bool:
 	for i in range(lista_animales.size()):
 		if lista_animales[i].id == id_animal:
 			var animal_a_vender = lista_animales[i]
-			dinero += precio_venta
 			
-			# Guardar en el historial de ventas
+			# Castigo al precio si el animal no está al 100% de salud
+			var precio_final = precio_base * (animal_a_vender.salud / 100.0)
+			dinero += precio_final
+			
 			var registro_venta = {
 				"id_animal": animal_a_vender.id,
 				"tipo": animal_a_vender.tipo,
 				"edad_al_vender": animal_a_vender.edad_meses,
 				"peso_al_vender": animal_a_vender.peso_kg,
-				"precio_venta": precio_venta,
-				"fecha_registro": Time.get_date_string_from_system()
+				"precio_venta": precio_final,
+				"fecha_registro": "Día " + str(dias_transcurridos)
 			}
 			historial_ventas.append(registro_venta)
 			
-			# Eliminar del inventario activo de la finca
 			lista_animales.remove_at(i)
-			print("VENTA EXITOSA: Ganancia de $", precio_venta, ". Dinero total: $", dinero)
+			print("VENTA: ", animal_a_vender.tipo, " vendido por $", precio_final)
 			return true
-			
-	print("ERROR: No se encontró el animal con el ID provisto.")
 	return false
 
-# --- CÁLCULOS DE CONSUMO DE ALIMENTO ---
-# Devuelve el total de kilos diarios que consume un grupo (ej: "Vaca")
-func obtener_consumo_grupal(tipo_buscado: String) -> float:
-	var total_kilos: float = 0.0
-	for animal in lista_animales:
-		if animal.tipo == tipo_buscado:
-			total_kilos += animal.obtener_consumo_diario()
-	return total_kilos
+# --- COMPRA DE ALIMENTO ---
+func comprar_alimento(tipo_animal: String, cantidad_kg: float) -> bool:
+	if not bodega_alimento.has(tipo_animal):
+		return false
+		
+	var costo_total = cantidad_kg * PRECIOS_ALIMENTO[tipo_animal]
+	if dinero >= costo_total:
+		dinero -= costo_total
+		bodega_alimento[tipo_animal] += cantidad_kg
+		print("MERCADO: Comprados ", cantidad_kg, " kg para el grupo ", tipo_animal)
+		return true
+	return false
 
-# Procesa el gasto de comida de toda la finca
+# --- SISTEMA DE ALIMENTACIÓN POR GRUPO ---
 func alimentar_finca_diariamente():
-	var consumo_total_finca: float = 0.0
-	for animal in lista_animales:
-		consumo_total_finca += animal.obtener_consumo_diario()
+	var necesidades_del_dia = {"Bovino": 0.0, "Ovino": 0.0, "Porcinos": 0.0}
 	
-	if inventario_alimento_kg >= consumo_total_finca:
-		inventario_alimento_kg -= consumo_total_finca
-		print("ALIMENTACIÓN: Se consumieron ", consumo_total_finca, " kg. Quedan ", inventario_alimento_kg, " kg en bodega.")
-	else:
-		print("¡ALERTA!: No hay comida suficiente en bodega para alimentar a los animales hoy.")
+	for animal in lista_animales:
+		necesidades_del_dia[animal.tipo] += animal.obtener_consumo_diario()
+	
+	for tipo in necesidades_del_dia.keys():
+		var requerido = necesidades_del_dia[tipo]
+		if requerido == 0: continue
+		
+		if bodega_alimento[tipo] >= requerido:
+			bodega_alimento[tipo] -= requerido
+			actualizar_salud_grupo(tipo, true)
+		else:
+			bodega_alimento[tipo] = 0.0
+			actualizar_salud_grupo(tipo, false)
+
+func actualizar_salud_grupo(tipo_animal: String, alimentado: bool):
+	for animal in lista_animales:
+		if animal.tipo == tipo_animal:
+			if alimentado:
+				animal.salud = min(animal.salud + 10, 100)
+			else:
+				animal.afectar_por_hambre()
 
 # --- CONTROL DEL TIEMPO ---
-# Simula el avance de un día completo: los animales comen y luego crecen
 func avanzar_dia_finca():
-	print("--- Avanzando el día en la finca ---")
+	dias_transcurridos += 1
+	print("\n--- PROCESANDO DÍA ", dias_transcurridos, " ---")
 	alimentar_finca_diariamente()
 	for animal in lista_animales:
 		animal.envejecer_y_crecer()
-		

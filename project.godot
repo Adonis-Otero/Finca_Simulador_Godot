@@ -11,6 +11,7 @@ config_version=5
 [application]
 
 config/name="finca_simulador_logica"
+run/main_scene="res://node_2d.tscn"
 config/features=PackedStringArray("4.6", "GL Compatibility")
 config/icon="res://icon.svg"
 

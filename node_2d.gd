@@ -1,44 +1,72 @@
 extends Node2D
 
+# =====================================================================
+#                 CONTROLADOR DE INTERFAZ GRÁFICA (UI)
+#   Nota para mi compañero: Aquí se conectan los elementos visuales
+# =====================================================================
+
 func _ready():
-	print("==================================================")
-	print("   INICIANDO SIMULACIÓN DE PRUEBA DE LA FINCA     ")
-	print("==================================================")
-	
-	# 1. Estado Inicial
-	print("Estado inicial -> Dinero: $", FincaManager.dinero, " | Alimento: ", FincaManager.inventario_alimento_kg, " kg")
-	
-	print("\n--- PASO 1: COMPRANDO ANIMALES ---")
-	# Compramos una vaca joven (45kg) por $1200 y una gallina (0.5kg) por $10
-	FincaManager.comprar_animal("Vaca", 2.0, 50.0, 1200.0)
-	FincaManager.comprar_animal("Gallina", 1.0, 0.6, 10.0)
-	
-	# Verificamos cuántos animales hay en total
-	print("Animales totales en la finca: ", FincaManager.lista_animales.size())
-	
-	print("\n--- PASO 2: REVISANDO CONSUMO DIARIO INDIVIDUAL ---")
-	for animal in FincaManager.lista_animales:
-		print("- Un/a ", animal.tipo, " de ", animal.peso_kg, " kg consume: ", animal.obtener_consumo_diario(), " kg/día")
+	print("Interfaz gráfica inicializada. Esperando interacciones del usuario...")
+	# Aquí puedes pedirle a la UI que muestre los valores iniciales en pantalla
+	actualizar_pantalla_datos_globales()
 
-	print("\n--- PASO 3: SIMULANDO EL PASO DEL TIEMPO (AVANZAR DÍA) ---")
-	# Hacemos avanzar el día. Esto restará comida y hará crecer a los animales
+
+# --- 1. ACTUALIZACIÓN DE TEXTOS EN PANTALLA ---
+# Funciones para que tu compañero actualice las etiquetas (Labels) de la UI
+func actualizar_pantalla_datos_globales():
+	print("\n=== ACTUALIZANDO PANEL GLOBAL ===")
+	print("Dinero en pantalla: $", FincaManager.dinero)
+	print("Días transcurridos: ", FincaManager.dias_transcurridos)
+	print("Bodega Bovinos: ", FincaManager.bodega_alimento["Bovino"], " kg")
+	print("Bodega Ovinos: ", FincaManager.bodega_alimento["Ovino"], " kg")
+	print("Bodega Porcinos: ", FincaManager.bodega_alimento["Porcinos"], " kg")
+	# Nota técnica: Tu compañero usará algo como: $LabelDinero.text = str(FincaManager.dinero)
+
+
+# --- 2. ACCIONES DE LOS BOTONES DE COMPRA ---
+# Tu compañero creará botones y, mediante señales (Signals), los conectará aquí
+
+func _on_boton_comprar_bovino_pressed(edad_ingresada: float, peso_ingresado: float, costo_mercado: float):
+	print("\n[UI] Clic en: Comprar Bovino")
+	var exito = FincaManager.comprar_animal("Bovino", edad_ingresada, peso_ingresado, costo_mercado)
+	if exito:
+		actualizar_pantalla_datos_globales()
+
+func _on_boton_comprar_ovino_pressed(edad_ingresada: float, peso_ingresado: float, costo_mercado: float):
+	print("\n[UI] Clic en: Comprar Ovino")
+	var exito = FincaManager.comprar_animal("Ovino", edad_ingresada, peso_ingresado, costo_mercado)
+	if exito:
+		actualizar_pantalla_datos_globales()
+
+func _on_boton_comprar_porcino_pressed(edad_ingresada: float, peso_ingresado: float, costo_mercado: float):
+	print("\n[UI] Clic en: Comprar Porcino")
+	var exito = FincaManager.comprar_animal("Porcinos", edad_ingresada, peso_ingresado, costo_mercado)
+	if exito:
+		actualizar_pantalla_datos_globales()
+
+
+# --- 3. ACCIONES DE LOS BOTONES DE TIENDA DE ALIMENTO ---
+
+func _on_boton_comprar_alimento_pressed(tipo_alimento: String, cantidad_kilos: float):
+	print("\n[UI] Clic en: Comprar Alimento para ", tipo_alimento)
+	# tipo_alimento debe ser estrictamente: "Bovino", "Ovino" o "Porcinos"
+	var exito = FincaManager.comprar_alimento(tipo_alimento, cantidad_kilos)
+	if exito:
+		actualizar_pantalla_datos_globales()
+
+
+# --- 4. ACCIONES DEL SISTEMA DE TIEMPO ---
+
+func _on_boton_avanzar_dia_pressed():
+	print("\n[UI] Clic en: Pasar al siguiente día")
 	FincaManager.avanzar_dia_finca()
-	
-	print("\n--- PASO 4: REVISANDO CRECIMIENTO TRAS AVANZAR EL DÍA ---")
-	for animal in FincaManager.lista_animales:
-		print("- El/La ", animal.tipo, " ahora pesa: ", animal.peso_kg, " kg y tiene ", animal.edad_meses, " meses de edad.")
+	actualizar_pantalla_datos_globales()
 
-	print("\n--- PASO 5: VENDIENDO UN ANIMAL ---")
-	# Tomamos el primer animal de la lista (la vaca) y lo vendemos por $1500
-	var animal_a_vender = FincaManager.lista_animales[0]
-	FincaManager.vender_animal(animal_a_vender.id, 1500.0)
-	
-	print("\n--- PASO 6: REVISANDO HISTORIALES CONTABLES ---")
-	print("Historial de Compras registrado (Total): ", FincaManager.historial_compras.size(), " operaciones.")
-	print("Historial de Ventas registrado (Total): ", FincaManager.historial_ventas.size(), " operaciones.")
-	
-	print("\n==================================================")
-	print("             FIN DE LA SIMULACIÓN                 ")
-	print("==================================================")
-	
-	
+
+# --- 5. ACCIONES DEL PANEL DE VENTAS ---
+
+func _on_boton_vender_animal_pressed(id_del_animal_seleccionado: String, precio_pautado: float):
+	print("\n[UI] Clic en: Vender Animal ID: ", id_del_animal_seleccionado)
+	var exito = FincaManager.vender_animal(id_del_animal_seleccionado, precio_pautado)
+	if exito:
+		actualizar_pantalla_datos_globales()
