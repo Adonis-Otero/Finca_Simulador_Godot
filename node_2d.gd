@@ -7,7 +7,17 @@ extends Node2D
 
 func _ready():
 	print("Interfaz gráfica inicializada. Esperando interacciones del usuario...")
-	# Aquí puedes pedirle a la UI que muestre los valores iniciales en pantalla
+	
+	# INTENTO DE CARGA: Si hay una partida guardada, la monta. Si no, crea datos iniciales de prueba.
+	var partida_encontrada = FincaManager.cargar_partida()
+	
+	if not partida_encontrada:
+		print("Creando datos iniciales de prueba para el primer guardado...")
+		FincaManager.comprar_animal("Bovino", 8.0, 280.0, 1800.0)
+		FincaManager.avanzar_dia_finca()
+		# Guardamos automáticamente para la próxima vez que abras el juego
+		FincaManager.guardar_partida()
+		
 	actualizar_pantalla_datos_globales()
 
 
@@ -70,3 +80,18 @@ func _on_boton_vender_animal_pressed(id_del_animal_seleccionado: String, precio_
 	var exito = FincaManager.vender_animal(id_del_animal_seleccionado, precio_pautado)
 	if exito:
 		actualizar_pantalla_datos_globales()
+
+
+# --- 6. ACCIONES DEL MENÚ DE SISTEMA (GUARDAR / CARGAR) ---
+
+func _on_boton_guardar_partida_pressed():
+	print("\n[UI] Clic en: Guardar Partida")
+	FincaManager.guardar_partida()
+
+func _on_boton_cargar_partida_pressed():
+	print("\n[UI] Clic en: Cargar Partida")
+	var exito = FincaManager.cargar_partida()
+	if exito:
+		actualizar_pantalla_datos_globales()
+		
+		

@@ -118,3 +118,92 @@ func avanzar_dia_finca():
 	alimentar_finca_diariamente()
 	for animal in lista_animales:
 		animal.envejecer_y_crecer()
+
+
+# --- NUEVO: SISTEMA DE PERSISTENCIA (GUARDAR / CARGAR) ---
+
+const RUTA_GUARDADO: String = "user://partida_finca.json"
+
+# 1. FUNCIÓN PARA GUARDAR LA PARTIDA
+func guardar_partida():
+	print("\n[SISTEMA] Iniciando proceso de guardado...")
+	
+	# Creamos un diccionario contenedor para meter toda la data global
+	var datos_partida = {
+		"dinero": dinero,
+		"dias_transcurridos": dias_transcurridos,
+		"bodega_alimento": bodega_alimento,
+		"historial_compras": historial_compras,
+		"historial_ventas": historial_ventas,
+		"animales": [] # Aquí meteremos las estadísticas de cada animal individual
+	}
+	
+	# Recorremos la lista de animales activos y los serializamos (convertimos a diccionario)
+	for animal in lista_animales:
+		var datos_animal = {
+			"tipo": animal.tipo,
+			"edad_meses": animal.edad_meses,
+			"peso_kg": animal.peso_kg,
+			"salud": animal.salud
+		}
+		datos_partida["animales"].append(datos_animal)
+	
+	# Convertimos el diccionario completo a una cadena de texto JSON
+	var cadena_json = JSON.stringify(datos_partida, "\t") # El "\t" lo hace legible al abrir el archivo
+	
+	# Abrimos el archivo en modo ESCRITURA (WRITE) para vaciar el texto
+	var archivo = FileAccess.open(RUTA_GUARDADO, FileAccess.WRITE)
+	if archivo:
+		archivo.store_string(cadena_json)
+		archivo.close()
+		print("¡ÉXITO! Partida guardada correctamente en: ", OS.get_user_data_dir())
+	else:
+		print("ERROR CRÍTICO: No se pudo crear o abrir el archivo de guardado.")
+
+# 2. FUNCIÓN PARA CARGAR LA PARTIDA
+func cargar_partida() -> bool:
+	print("\n[SISTEMA] Buscando archivo de guardado previo...")
+	
+	# Verificamos primero si el archivo realmente existe en la computadora
+	if not FileAccess.file_exists(RUTA_GUARDADO):
+		print("AVISO: No se encontró ninguna partida guardada. Iniciando finca desde cero.")
+		return false
+		
+	# Abrimos el archivo en modo LECTURA (READ)
+	var archivo = FileAccess.open(RUTA_GUARDADO, FileAccess.READ)
+	if not archivo:
+		print("ERROR: El archivo existe pero no se pudo leer.")
+		return false
+		
+	var contenido_texto = archivo.get_as_text()
+	archivo.close()
+	
+	# Parseamos el texto JSON de vuelta a un formato que Godot entienda (Diccionario)
+	var json = JSON.new()
+	var error = json.parse(contenido_texto)
+	if error != OK:
+		print("ERROR: El archivo de guardado está corrupto o mal estructurado.")
+		return false
+		
+	var datos_cargados = json.get_data()
+	
+	# Reasignamos las variables globales con la data recuperada
+	dinero = datos_cargados["dinero"]
+	dias_transcurridos = datos_cargados["dias_transcurridos"]
+	bodega_alimento = datos_cargados["bodega_alimento"]
+	historial_compras.assign(datos_cargados["historial_compras"])
+	historial_ventas.assign(datos_cargados["historial_ventas"])
+	
+	# Limpiamos la lista actual de animales antes de repoblar
+	lista_animales.clear()
+	
+	# Reconstruimos los objetos instanciados de la clase Animal
+	for datos_an in datos_cargados["animales"]:
+		var nuevo_animal = Animal.new(datos_an["tipo"], datos_an["edad_meses"], datos_an["peso_kg"])
+		nuevo_animal.salud = datos_an["salud"]
+		lista_animales.append(nuevo_animal)
+		
+	print("¡ÉXITO! Partida cargada de forma impecable. Día actual: ", dias_transcurridos)
+	return true
+	
+	
